@@ -3,7 +3,7 @@ Zapatos: https://jawj.github.io/zapatos/
 Copyright (C) 2020 George MacKerron
 Released under the MIT licence: see LICENCE file
 */
-
+import { snakeCase } from 'change-case';
 import type * as pg from 'pg';
 import { performance } from 'perf_hooks';
 
@@ -275,14 +275,14 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
     } else if (expression instanceof ParentColumn) {
       // alias to the parent table (plus supplied column name) of a nested query, if applicable
       if (!parentTable) throw new Error(`The 'parent' table alias has no meaning here`);
-      result.text += `"${parentTable}"."${expression.value}"`;
+      result.text += `"${parentTable}"."${snakeCase(expression.value)}"`;
 
     } else if (expression instanceof ColumnNames) {
       // a ColumnNames-wrapped object -> quoted names in a repeatable order
       // OR a ColumnNames-wrapped array -> quoted array values
       const columnNames = Array.isArray(expression.value) ? expression.value :
         Object.keys(expression.value).sort();
-      result.text += columnNames.map(k => `"${k}"`).join(', ');
+      result.text += columnNames.map((k) => `"${snakeCase(String(k))}"`).join(', ');
 
     } else if (expression instanceof ColumnValues) {
       // a ColumnValues-wrapped object OR array 
@@ -307,17 +307,27 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
             columnName = columnNames[i],
             columnValue = columnValues[i];
           if (i > 0) result.text += ', ';
-          if (columnValue instanceof SQLFragment ||
+          if (
+            columnValue instanceof SQLFragment ||
             columnValue instanceof Parameter ||
-            columnValue === Default) this.compileExpression(columnValue, result, parentTable, columnName);
-          else this.compileExpression(new Parameter(columnValue), result, parentTable, columnName);
+            columnValue === Default
+          ) {
+            this.compileExpression(columnValue, result, parentTable, snakeCase(columnName));
+          } else {
+            this.compileExpression(
+              new Parameter(columnValue),
+              result,
+              parentTable,
+              snakeCase(columnName)
+            );
+          }
         }
       }
 
     } else if (typeof expression === 'object') {
       // must be a Whereable object, so put together a WHERE clause
       const columnNames = <Column[]>Object.keys(expression).sort();
-
+      
       if (columnNames.length) {  // if the object is not empty
         result.text += '(';
         for (let i = 0, len = columnNames.length; i < len; i++) {
@@ -327,13 +337,17 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
           if (i > 0) result.text += ' AND ';
           if (columnValue instanceof SQLFragment) {
             result.text += '(';
-            this.compileExpression(columnValue, result, parentTable, columnName);
+            this.compileExpression(columnValue, result, parentTable, snakeCase(columnName));
             result.text += ')';
 
           } else {
-            result.text += `"${columnName}" = `;
-            this.compileExpression(columnValue instanceof ParentColumn ? columnValue : new Parameter(columnValue),
-              result, parentTable, columnName);
+            result.text += `"${snakeCase(columnName)}" = `;
+            this.compileExpression(
+              columnValue instanceof ParentColumn ? columnValue : new Parameter(columnValue),
+              result,
+              parentTable,
+              snakeCase(columnName)
+            );
           }
         }
         result.text += ')';

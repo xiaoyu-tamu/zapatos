@@ -23,6 +23,7 @@ export const doNothing = mod.doNothing;
 export const getConfig = mod.getConfig;
 export const insert = mod.insert;
 export const isDatabaseError = mod.isDatabaseError;
+export const merge = mod.merge;
 export const param = mod.param;
 export const parent = mod.parent;
 export const raw = mod.raw;

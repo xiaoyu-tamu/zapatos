@@ -9,6 +9,7 @@ import { tsTypeForPgType } from './pgTypes';
 import type { EnumData } from './enums';
 import type { CustomTypes } from './tsOutput';
 import { CompleteConfig } from './config';
+import { camelCase } from 'camel-case';
 
 export interface Relation {
   name: string;
@@ -102,6 +103,7 @@ export const definitionForRelationInSchema = async (
     updatables: string[] = [];
 
   rows.forEach(row => {
+    row.column = camelCase(row.column);
     const { column, isGenerated, isNullable, hasDefault, udtName, domainName } = row;
     let
       selectableType = tsTypeForPgType(udtName, enums, 'Selectable'),
