@@ -745,6 +745,8 @@ export const merge: MergeSignatures = function (
   // note: the ROW() constructor below is required in Postgres 10+ if we're updating a single column
   // more info: https://www.postgresql-archive.org/Possible-regression-in-UPDATE-SET-lt-column-list-gt-lt-row-expression-gt-with-just-one-single-column0-td5989074.html
 
+  const update =pick(options.values, options.update!);
+  const updatewhere = pick(options.values, options.where!);
   const returningSQL = SQLForColumnsOfTable(options?.returning, table),
     extrasSQL = SQLForExtras(options?.extras),
     query = sql`
@@ -752,8 +754,8 @@ export const merge: MergeSignatures = function (
       updated AS
       (
         UPDATE ${table} 
-        SET (${cols(options.values)}) = ROW(${vals(options.values)})
-        WHERE ${pick(options.values, options.where!)} 
+        SET (${cols(update)}) = ROW(${vals(update)})
+        WHERE ${updatewhere} 
         RETURNING ${returningSQL}${extrasSQL} AS result
       ),
       created AS
