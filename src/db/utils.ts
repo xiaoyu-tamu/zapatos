@@ -4,17 +4,17 @@ Copyright (C) 2020 George MacKerron
 Released under the MIT licence: see LICENCE file
 */
 
-export type NoInfer<T> = [T][T extends any ? 0 : never];  // https://github.com/Microsoft/TypeScript/issues/14829
+export type NoInfer<T> = [T][T extends any ? 0 : never]; // https://github.com/Microsoft/TypeScript/issues/14829
 export type PromisedType<P> = P extends PromiseLike<infer U> ? U : never;
 
 /**
  * Simple promisification of setTimeout.
  * @param delayMs Time to wait, in milliseconds
  */
-export const wait = (delayMs: number) => new Promise(resolve => setTimeout(resolve, delayMs));
+export const wait = (delayMs: number) => new Promise((resolve) => setTimeout(resolve, delayMs));
 
 /**
- * Map an input array to an output array, interspersing a constant separator value 
+ * Map an input array to an output array, interspersing a constant separator value
  * between the mapped values.
  * @param arr Input array
  * @param separator Separator value
@@ -25,7 +25,6 @@ export const mapWithSeparator = <TIn, TSep, TOut>(
   separator: TSep,
   cb: (x: TIn, i: number, a: typeof arr) => TOut
 ): (TOut | TSep)[] => {
-
   const result: (TOut | TSep)[] = [];
   for (let i = 0, len = arr.length; i < len; i++) {
     if (i > 0) result.push(separator);
@@ -36,22 +35,25 @@ export const mapWithSeparator = <TIn, TSep, TOut>(
 
 /**
  * Map an array of objects to an output array by taking the union of all objects' keys
- * and ensuring that any key not present on any object gets a default value. 
- * 
+ * and ensuring that any key not present on any object gets a default value.
+ *
  * `e.g. [{ x: 1 }, { y: 2 }] => [{ x: 1, y: defaultValue }, { x: defaultValue, y: 2}]`
  * @param objs The array of objects
  * @param defaultValue The default value to assign to missing keys for each object
  */
-export const completeKeysWithDefaultValue = <T extends object>(objs: T[], defaultValue: any): T[] => {
+export const completeKeysWithDefaultValue = <T extends object>(
+  objs: T[],
+  defaultValue: any
+): T[] => {
   const unionKeys = Object.assign({}, ...objs);
   for (const k in unionKeys) unionKeys[k] = defaultValue;
-  return objs.map(o => ({ ...unionKeys, ...o }));
+  return objs.map((o) => ({ ...unionKeys, ...o }));
 };
 
 /**
- * Test that a value is a Plain Old JavaScript Object (such as one created by an object 
+ * Test that a value is a Plain Old JavaScript Object (such as one created by an object
  * literal, e.g. `{x: 1, y: 2}`)
- * @param x The value to test 
+ * @param x The value to test
  */
 export const isPOJO = (x: any) =>
   typeof x === 'object' &&

@@ -6,8 +6,7 @@ Released under the MIT licence: see LICENCE file
 
 import * as fs from 'fs';
 import * as path from 'path';
-import type * as pg from 'pg';
-
+import * as pg from 'pg';
 
 export interface RequiredConfig {
   db: pg.ClientConfig;
@@ -32,8 +31,10 @@ interface SchemaRules {
 }
 
 interface ColumnOptions {
-  [k: string]: {  // table name or "*"
-    [k: string]: {  // column name
+  [k: string]: {
+    // table name or "*"
+    [k: string]: {
+      // column name
       insert?: 'auto' | 'excluded' | 'optional';
       update?: 'auto' | 'excluded';
     };
@@ -57,13 +58,15 @@ const defaultConfig: OptionalConfig = {
 export const moduleRoot = () => {
   // __dirname could be either ./generate (ts) or ./dist/generate (js)
   const parentDir = path.join(__dirname, '..');
-  return fs.existsSync(path.join(parentDir, 'package.json')) ?
-    parentDir :
-    path.join(parentDir, '..');
+  return fs.existsSync(path.join(parentDir, 'package.json'))
+    ? parentDir
+    : path.join(parentDir, '..');
 };
 
 export const finaliseConfig = (config: Config) => {
   const finalConfig = { ...defaultConfig, ...config };
-  if (!finalConfig.db || Object.keys(finalConfig.db).length < 1) throw new Error(`Zapatos needs database connection details`);
+  if (!finalConfig.db || Object.keys(finalConfig.db).length < 1) {
+    throw new Error(`Zapatos needs database connection details`);
+  }
   return finalConfig as CompleteConfig;
 };

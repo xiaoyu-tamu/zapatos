@@ -7,19 +7,19 @@ Released under the MIT licence: see LICENCE file
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { CompleteConfig } from "./config";
-
+import { CompleteConfig } from './config';
 
 const recurseNodes = (node: string): string[] =>
-  fs.statSync(node).isFile() ? [node] :
-    fs.readdirSync(node).reduce<string[]>((memo, n) =>
-      memo.concat(recurseNodes(path.join(node, n))), []);
+  fs.statSync(node).isFile()
+    ? [node]
+    : fs
+        .readdirSync(node)
+        .reduce<string[]>((memo, n) => memo.concat(recurseNodes(path.join(node, n))), []);
 
 export function srcWarning(config: CompleteConfig) {
-  if (config.outExt === '.ts') return;  // if .ts extension is explicitly set, our legacy detection code fails
+  if (config.outExt === '.ts') return; // if .ts extension is explicitly set, our legacy detection code fails
 
-  const
-    legacyFolderName = 'zapatos',
+  const legacyFolderName = 'zapatos',
     legacyFolderPath = path.join(config.outDir, legacyFolderName),
     legacySchemaName = 'schema.ts',
     legacySchemaPath = path.join(legacyFolderPath, legacySchemaName),
@@ -30,15 +30,17 @@ export function srcWarning(config: CompleteConfig) {
     legacyCustomName = 'custom',
     legacyCustomPath = path.join(legacyFolderPath, legacyCustomName),
     legacyCustomPathExists = fs.existsSync(legacyCustomPath),
-    legacyCustomTypes = !legacyCustomPathExists ? [] :
-      recurseNodes(legacyCustomPath).filter(f => !f.match(/[.]d[.]ts$/)),
+    legacyCustomTypes = !legacyCustomPathExists
+      ? []
+      : recurseNodes(legacyCustomPath).filter((f) => !f.match(/[.]d[.]ts$/)),
     legacyCustomTypesExist = legacyCustomTypes.length > 0;
 
   if (legacySchemaExists || legacySrcExists || legacyCustomTypesExist) {
-    const warn = config.warningListener === true ? console.log :
-      config.warningListener || (() => void 0);
+    const warn =
+      config.warningListener === true ? console.log : config.warningListener || (() => void 0);
 
-    warn(`
+    warn(
+      `
 *** IMPORTANT: ZAPATOS NO LONGER COPIES ITS SOURCE TO YOUR SOURCE TREE ***
 
 To convert your codebase, please do the following:
@@ -49,18 +51,25 @@ To convert your codebase, please do the following:
 * Remove the "srcMode" key, if present, from 'zapatosconfig.json' or the config
   argument passed to 'generate'
 ` +
-      (legacySchemaExists ? `
+        (legacySchemaExists
+          ? `
 * Delete the file 'zapatos/schema.ts' (but leave 'zapatos/schema.d.ts')
-` : ``) +
-      (legacySrcExists ? `
+`
+          : ``) +
+        (legacySrcExists
+          ? `
 * Delete the folder 'zapatos/src' and all its contents
-` : ``) +
-      (legacyCustomTypesExist ? `
+`
+          : ``) +
+        (legacyCustomTypesExist
+          ? `
 * Transfer any customised type declarations in 'zapatos/custom' from the plain
   old '.ts' files to the new '.d.ts' files
 
 * Delete all the plain '.ts' files in 'zapatos/custom', including 'index.ts'
-` : ``) + `
+`
+          : ``) +
+        `
 * Ensure that the '.d.ts' files in 'zapatos' are picked up by your TypeScript
   configuration (e.g. check the "files" or "include" key in 'tsconfig.json')
 
@@ -91,6 +100,7 @@ To convert your codebase, please do the following:
       Replace: $1type $3$4
 
 Thank you.
-`);
+`
+    );
   }
 }

@@ -12,15 +12,19 @@ const baseTsTypeForBasePgType = (pgType: string, enums: EnumData, context: TypeC
   const hasOwnProp = Object.prototype.hasOwnProperty;
   switch (pgType) {
     case 'int8':
-      return context === 'JSONSelectable' ? 'number' :
-        context === 'Selectable' ? 'db.Int8String' :
-          '(number | db.Int8String)';
+      return context === 'JSONSelectable'
+        ? 'number'
+        : context === 'Selectable'
+        ? 'db.Int8String'
+        : '(number | db.Int8String)';
     case 'date':
     case 'timestamp':
     case 'timestamptz':
-      return context === 'JSONSelectable' ? 'db.DateString' :
-        context === 'Selectable' ? 'Date' :
-          '(Date | db.DateString)';
+      return context === 'JSONSelectable'
+        ? 'db.DateString'
+        : context === 'Selectable'
+        ? 'Date'
+        : '(Date | db.DateString)';
     case 'bpchar':
     case 'char':
     case 'varchar':

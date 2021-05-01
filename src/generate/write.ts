@@ -6,36 +6,33 @@ Released under the MIT licence: see LICENCE file
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { finaliseConfig, Config } from './config';
+import { Config, finaliseConfig } from './config';
+import { header } from './header';
 import * as legacy from './legacy';
 import { tsForConfig } from './tsOutput';
-import { header } from './header';
 
 /**
  * Generate a schema and supporting files and folders given a configuration.
  * @param suppliedConfig An object approximately matching `zapatosconfig.json`.
  */
 export const generate = async (suppliedConfig: Config) => {
-  const
-    config = finaliseConfig(suppliedConfig),
-    log = config.progressListener === true ? console.log :
-      config.progressListener || (() => void 0),
-    warn = config.warningListener === true ? console.log :
-      config.warningListener || (() => void 0),
-
+  const config = finaliseConfig(suppliedConfig),
+    log =
+      config.progressListener === true ? console.log : config.progressListener || (() => void 0),
+    warn = config.warningListener === true ? console.log : config.warningListener || (() => void 0),
     { ts, customTypeSourceFiles } = await tsForConfig(config),
-
     folderName = 'zapatos',
     schemaName = 'schema' + config.outExt,
     customFolderName = 'custom',
     eslintrcName = '.eslintrc.json',
     eslintrcContent = '{\n  "ignorePatterns": [\n    "*"\n  ]\n}',
     customTypesIndexName = 'index' + config.outExt,
-    customTypesIndexContent = header() + `
+    customTypesIndexContent =
+      header() +
+      `
 // this empty declaration appears to fix relative imports in other custom type files
 declare module 'zapatos/custom' { }
 `,
-
     folderTargetPath = path.join(config.outDir, folderName),
     schemaTargetPath = path.join(folderTargetPath, schemaName),
     customFolderTargetPath = path.join(folderTargetPath, customFolderName),
@@ -55,10 +52,12 @@ declare module 'zapatos/custom' { }
     fs.mkdirSync(customFolderTargetPath, { recursive: true });
 
     for (const customTypeFileName in customTypeSourceFiles) {
-      const customTypeFilePath = path.join(customFolderTargetPath, customTypeFileName + config.outExt);
+      const customTypeFilePath = path.join(
+        customFolderTargetPath,
+        customTypeFileName + config.outExt
+      );
       if (fs.existsSync(customTypeFilePath)) {
         log(`Custom type or domain declaration file already exists: ${customTypeFilePath}`);
-
       } else {
         warn(`Writing new custom type or domain placeholder file: ${customTypeFilePath}`);
         const customTypeFileContent = customTypeSourceFiles[customTypeFileName];

@@ -1,13 +1,10 @@
-
 import * as fs from 'fs';
 import * as path from 'path';
 
 import { moduleRoot } from './config';
 
-
 export const header = () => {
-  const
-    pkgPath = path.join(moduleRoot(), 'package.json'),
+  const pkgPath = path.join(moduleRoot(), 'package.json'),
     pkg = JSON.parse(fs.readFileSync(pkgPath, { encoding: 'utf8' })),
     version = pkg.version;
 

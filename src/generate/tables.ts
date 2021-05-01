@@ -36,7 +36,7 @@ export const relationsInSchema = async (schemaName: string, pool: pg.Pool): Prom
       WHERE pg_class.relkind = 'm' AND pg_namespace.nspname = $1
       GROUP BY "name"
       ORDER BY "lname", "name"`,
-    values: [schemaName]
+    values: [schemaName],
   });
 
   return rows;
@@ -45,7 +45,7 @@ export const relationsInSchema = async (schemaName: string, pool: pg.Pool): Prom
 const columnsForRelation = async (rel: Relation, schemaName: string, pool: pg.Pool) => {
   const { rows } = await pool.query({
     text:
-      rel.type === "table"
+      rel.type === 'table'
         ? `
         SELECT
           "column_name" AS "column"
@@ -90,40 +90,38 @@ export const definitionForRelationInSchema = async (
   rel: Relation,
   schemaName: string,
   enums: EnumData,
-  customTypes: CustomTypes,  // an 'out' parameter
+  customTypes: CustomTypes, // an 'out' parameter
   config: CompleteConfig,
-  pool: pg.Pool,
+  pool: pg.Pool
 ) => {
-  const
-    rows = await columnsForRelation(rel, schemaName, pool),
+  const rows = await columnsForRelation(rel, schemaName, pool),
     selectables: string[] = [],
     JSONSelectables: string[] = [],
     whereables: string[] = [],
     insertables: string[] = [],
     updatables: string[] = [];
 
-  rows.forEach(row => {
+  rows.forEach((row) => {
     row.column = camelCase(row.column);
     const { column, isGenerated, isNullable, hasDefault, udtName, domainName } = row;
-    let
-      selectableType = tsTypeForPgType(udtName, enums, 'Selectable'),
+    let selectableType = tsTypeForPgType(udtName, enums, 'Selectable'),
       JSONSelectableType = tsTypeForPgType(udtName, enums, 'JSONSelectable'),
       whereableType = tsTypeForPgType(udtName, enums, 'Whereable'),
       insertableType = tsTypeForPgType(udtName, enums, 'Insertable'),
       updatableType = tsTypeForPgType(udtName, enums, 'Updatable');
 
-    const
-      columnDoc = config.schemaJSDoc ? createColumnDoc(schemaName, rel, row) : '',
+    const columnDoc = config.schemaJSDoc ? createColumnDoc(schemaName, rel, row) : '',
       columnOptions =
         (config.columnOptions[rel.name] && config.columnOptions[rel.name][column]) ??
-        (config.columnOptions["*"] && config.columnOptions["*"][column]),
+        (config.columnOptions['*'] && config.columnOptions['*'][column]),
       isInsertable = !isGenerated && columnOptions?.insert !== 'excluded',
       isUpdatable = !isGenerated && columnOptions?.update !== 'excluded',
-      insertablyOptional = isNullable || hasDefault || columnOptions?.insert === 'optional' ? '?' : '',
+      insertablyOptional =
+        isNullable || hasDefault || columnOptions?.insert === 'optional' ? '?' : '',
       orNull = isNullable ? ' | null' : '',
       orDefault = isNullable || hasDefault ? ' | db.DefaultType' : '';
 
-    // Now, 4 cases: 
+    // Now, 4 cases:
     //   1. null domain, known udt        <-- standard case
     //   2. null domain, unknown udt      <-- custom type:       create type file, with placeholder 'any'
     //   3. non-null domain, known udt    <-- alias type:        create type file, with udt-based placeholder
@@ -131,9 +129,9 @@ export const definitionForRelationInSchema = async (
 
     // Note: arrays of domains or custom types are treated as their own custom types
 
-    if (selectableType === 'any' || domainName !== null) {  // cases 2, 3, 4
-      const
-        customType: string = domainName ?? udtName,
+    if (selectableType === 'any' || domainName !== null) {
+      // cases 2, 3, 4
+      const customType: string = domainName ?? udtName,
         prefixedCustomType = transformCustomType(customType, config);
 
       customTypes[prefixedCustomType] = selectableType;
@@ -145,17 +143,24 @@ export const definitionForRelationInSchema = async (
     JSONSelectables.push(`${columnDoc}${column}: ${JSONSelectableType}${orNull};`);
 
     const basicWhereableTypes = `${whereableType} | db.Parameter<${whereableType}> | db.SQLFragment | db.ParentColumn`;
-    whereables.push(`${columnDoc}${column}?: ${basicWhereableTypes} | db.SQLFragment<any, ${basicWhereableTypes}>;`);
+    whereables.push(
+      `${columnDoc}${column}?: ${basicWhereableTypes} | db.SQLFragment<any, ${basicWhereableTypes}>;`
+    );
 
     const insertableTypes = `${insertableType} | db.Parameter<${insertableType}>${orNull}${orDefault} | db.SQLFragment`;
-    if (isInsertable) insertables.push(`${columnDoc}${column}${insertablyOptional}: ${insertableTypes};`);
+    if (isInsertable) {
+      insertables.push(`${columnDoc}${column}${insertablyOptional}: ${insertableTypes};`);
+    }
 
     const updatableTypes = `${updatableType} | db.Parameter<${updatableType}>${orNull}${orDefault} | db.SQLFragment`;
-    if (isUpdatable) updatables.push(`${columnDoc}${column}?: ${updatableTypes} | db.SQLFragment<any, ${updatableTypes}>;`);
+    if (isUpdatable) {
+      updatables.push(
+        `${columnDoc}${column}?: ${updatableTypes} | db.SQLFragment<any, ${updatableTypes}>;`
+      );
+    }
   });
 
-  const
-    result = await pool.query({
+  const result = await pool.query({
       text: `
         SELECT i."indexname"
         FROM "pg_indexes" i 
@@ -163,7 +168,7 @@ export const definitionForRelationInSchema = async (
         JOIN "pg_index" idx ON idx."indexrelid" = c."oid" AND idx."indisunique" 
         WHERE i."tablename" = $1
         ORDER BY i."indexname"`,
-      values: [rel.name]
+      values: [rel.name],
     }),
     uniqueIndexes = result.rows;
 
@@ -185,9 +190,11 @@ export namespace ${rel.name} {
   export interface Updatable {
     ${updatables.join('\n    ')}
   }
-  export type UniqueIndex = ${uniqueIndexes.length > 0 ?
-      uniqueIndexes.map(ui => "'" + ui.indexname + "'").join(' | ') :
-      'never'};
+  export type UniqueIndex = ${
+    uniqueIndexes.length > 0
+      ? uniqueIndexes.map((ui) => "'" + ui.indexname + "'").join(' | ')
+      : 'never'
+  };
   export type Column = keyof Selectable;
   export type OnlyCols<T extends readonly Column[]> = Pick<Selectable, T[number]>;
   export type SQLExpression = db.GenericSQLExpression | db.ColumnNames<Updatable | (keyof Updatable)[]> | db.ColumnValues<Updatable> | Table | Whereable | Column;
@@ -197,42 +204,76 @@ export namespace ${rel.name} {
 };
 
 const transformCustomType = (customType: string, config: CompleteConfig) => {
-  const
-    ctt = config.customTypesTransform,
+  const ctt = config.customTypesTransform,
     underscoredType = customType.replace(/\W+/g, '_'),
     legalisedType = customType.replace(/\W+/g, '');
 
-  return ctt === 'my_type' ? legalisedType :
-    ctt === 'PgMyType' ? ('Pg_' + legalisedType).replace(/_[^_]/g, m => m.charAt(1).toUpperCase()) :
-      ctt === 'PgMy_type' ? 'Pg' + underscoredType.charAt(0).toUpperCase() + underscoredType.slice(1) :
-        ctt(customType);
+  return ctt === 'my_type'
+    ? legalisedType
+    : ctt === 'PgMyType'
+    ? ('Pg_' + legalisedType).replace(/_[^_]/g, (m) => m.charAt(1).toUpperCase())
+    : ctt === 'PgMy_type'
+    ? 'Pg' + underscoredType.charAt(0).toUpperCase() + underscoredType.slice(1)
+    : ctt(customType);
 };
 
 const mappedUnion = (arr: Relation[], fn: (name: string) => string) =>
-  arr.length === 0 ? 'any' : arr.map(rel => fn(rel.name)).join(' | ');
+  arr.length === 0 ? 'any' : arr.map((rel) => fn(rel.name)).join(' | ');
 
-export const crossTableTypesForTables = (relations: Relation[]) => `${relations.length === 0 ?
-  '\n// `never` rather than `any` types would be more accurate in this no-tables case, but they stop `shortcuts.ts` compiling\n' : ''
-  }
-export type Table = ${mappedUnion(relations, name => `${name}.Table`)};
-export type Selectable = ${mappedUnion(relations, name => `${name}.Selectable`)};
-export type JSONSelectable = ${mappedUnion(relations, name => `${name}.JSONSelectable`)};
-export type Whereable = ${mappedUnion(relations, name => `${name}.Whereable`)};
-export type Insertable = ${mappedUnion(relations, name => `${name}.Insertable`)};
-export type Updatable = ${mappedUnion(relations, name => `${name}.Updatable`)};
-export type UniqueIndex = ${mappedUnion(relations, name => `${name}.UniqueIndex`)};
-export type Column = ${mappedUnion(relations, name => `${name}.Column`)};
-export type AllTables = [${relations.filter(rel => rel.type === 'table').map(rel => `${rel.name}.Table`).join(', ')}];
-export type AllMaterializedViews = [${relations.filter(rel => rel.type === 'mview').map(rel => `${rel.name}.Table`).join(', ')}];
+export const crossTableTypesForTables = (relations: Relation[]) => `${
+  relations.length === 0
+    ? '\n// `never` rather than `any` types would be more accurate in this no-tables case, but they stop `shortcuts.ts` compiling\n'
+    : ''
+}
+export type Table = ${mappedUnion(relations, (name) => `${name}.Table`)};
+export type Selectable = ${mappedUnion(relations, (name) => `${name}.Selectable`)};
+export type JSONSelectable = ${mappedUnion(relations, (name) => `${name}.JSONSelectable`)};
+export type Whereable = ${mappedUnion(relations, (name) => `${name}.Whereable`)};
+export type Insertable = ${mappedUnion(relations, (name) => `${name}.Insertable`)};
+export type Updatable = ${mappedUnion(relations, (name) => `${name}.Updatable`)};
+export type UniqueIndex = ${mappedUnion(relations, (name) => `${name}.UniqueIndex`)};
+export type Column = ${mappedUnion(relations, (name) => `${name}.Column`)};
+export type AllTables = [${relations
+  .filter((rel) => rel.type === 'table')
+  .map((rel) => `${rel.name}.Table`)
+  .join(', ')}];
+export type AllMaterializedViews = [${relations
+  .filter((rel) => rel.type === 'mview')
+  .map((rel) => `${rel.name}.Table`)
+  .join(', ')}];
 
-${['Selectable', 'JSONSelectable', 'Whereable', 'Insertable', 'Updatable', 'UniqueIndex', 'Column', 'SQL'].map(thingable => `
-export type ${thingable}ForTable<T extends Table> = ${relations.length === 0 ? 'any' : `{${relations.map(rel => `
-  ${rel.name}: ${rel.name}.${thingable};`).join('')}
-}[T]`};
-`).join('')}`;
+${[
+  'Selectable',
+  'JSONSelectable',
+  'Whereable',
+  'Insertable',
+  'Updatable',
+  'UniqueIndex',
+  'Column',
+  'SQL',
+]
+  .map(
+    (thingable) => `
+export type ${thingable}ForTable<T extends Table> = ${
+      relations.length === 0
+        ? 'any'
+        : `{${relations
+            .map(
+              (rel) => `
+  ${rel.name}: ${rel.name}.${thingable};`
+            )
+            .join('')}
+}[T]`
+    };
+`
+  )
+  .join('')}`;
 
-
-const createColumnDoc = (schemaName: string, rel: Relation, columnDetails: Record<string, unknown>) => {
+const createColumnDoc = (
+  schemaName: string,
+  rel: Relation,
+  columnDetails: Record<string, unknown>
+) => {
   const {
     column,
     isGenerated,
@@ -246,9 +287,24 @@ const createColumnDoc = (schemaName: string, rel: Relation, columnDetails: Recor
 
   const doc = `/**
     * **${rel.name}.${column}**${description ? '\n    *\n    * ' + description : ''}
-    * - ${domainName ? `\`${domainName}\` (base type: \`${udtName ?? '(none)'}\`)` : `\`${udtName ?? '(none)'}\``} in database
-    * - ${rel.type === 'mview' ? 'Materialized view column' : isGenerated ? 'Generated column' :
-      `${isNullable ? 'Nullable' : '`NOT NULL`'}, ${hasDefault && defaultValue === null ? `identity column` : hasDefault ? `default: \`${defaultValue}\`` : `no default`}`}
+    * - ${
+      domainName
+        ? `\`${domainName}\` (base type: \`${udtName ?? '(none)'}\`)`
+        : `\`${udtName ?? '(none)'}\``
+    } in database
+    * - ${
+      rel.type === 'mview'
+        ? 'Materialized view column'
+        : isGenerated
+        ? 'Generated column'
+        : `${isNullable ? 'Nullable' : '`NOT NULL`'}, ${
+            hasDefault && defaultValue === null
+              ? `identity column`
+              : hasDefault
+              ? `default: \`${defaultValue}\``
+              : `no default`
+          }`
+    }
     */
     `;
   return doc;
