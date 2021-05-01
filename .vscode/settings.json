@@ -4,6 +4,6 @@
   "editor.insertSpaces": true,
   "editor.tabSize": 2,
   "editor.formatOnType": false,
-  "editor.formatOnSave": false,
+  "editor.formatOnSave": true,
   "editor.formatOnPaste": false
 }
